@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Ensure /install and /install/* route to public front controller
+    RewriteRule ^install(/.*)?$ public/index.php [L,QSA]
+
+    # Serve existing files and directories directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route all other requests through public front controller
+    RewriteRule ^(.*)$ public/index.php [L,QSA]
+</IfModule>
+
+DirectoryIndex index.php index.html

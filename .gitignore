@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Application specific secrets & installation lock
+app/config/db_config.php
+app/config/payment_config.php
+storage/installed.lock
+storage/logs/*.log
+storage/uploads/*
