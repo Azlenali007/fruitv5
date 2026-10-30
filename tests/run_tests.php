@@ -163,6 +163,14 @@ require_once __DIR__ . '/test_razorpay.php';
 $passCount += $rpPass;
 $failCount += $rpFail;
 
+// ---------------------------------------------------------
+// 10. DELIVERY AREAS, COD TOGGLE & PICKUP REMOVAL TEST SUITE
+// ---------------------------------------------------------
+echo "\n";
+require_once __DIR__ . '/test_delivery_areas.php';
+$passCount += $areaPass;
+$failCount += $areaFail;
+
 echo "\n========================================================\n";
 echo "OVERALL SYSTEM SUMMARY: {$passCount} PASSED, {$failCount} FAILED\n";
 echo "========================================================\n";

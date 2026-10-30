@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "N.A Fresh Fruits & Coconuts",
+  "description": "Fresh Coconut Water, Juices, and Fruits Delivery Platform with Real-time GPS Location Detection, Area Boundary Coverage, and Secure Payments.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

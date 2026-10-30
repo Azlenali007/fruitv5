@@ -75,20 +75,20 @@ $webhookEndpointUrl = $currentDomain . '/webhooks/razorpay';
             </div>
             <div>
                 <p class="text-[11px] font-bold uppercase text-gray-400 tracking-wider">Razorpay Gateway</p>
-                <p class="text-xs font-black <?= $pSettings['razorpay_enabled'] === '1' ? 'text-emerald-700' : 'text-gray-500' ?>">
-                    <?= $pSettings['razorpay_enabled'] === '1' ? 'ENABLED (' . strtoupper($pSettings['razorpay_mode']) . ' MODE)' : 'DISABLED' ?>
+                <p class="text-xs font-black <?= !empty($pSettings['razorpay_enabled']) ? 'text-emerald-700' : 'text-gray-500' ?>">
+                    <?= !empty($pSettings['razorpay_enabled']) ? 'ENABLED (' . strtoupper($pSettings['razorpay_mode']) . ' MODE)' : 'DISABLED' ?>
                 </p>
             </div>
         </div>
 
         <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl <?= $pSettings['cod_enabled'] === '1' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400' ?> flex items-center justify-center font-bold text-lg">
+            <div class="w-10 h-10 rounded-xl <?= !empty($pSettings['cod_enabled']) ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400' ?> flex items-center justify-center font-bold text-lg">
                 💵
             </div>
             <div>
                 <p class="text-[11px] font-bold uppercase text-gray-400 tracking-wider">Cash on Delivery</p>
-                <p class="text-xs font-black <?= $pSettings['cod_enabled'] === '1' ? 'text-emerald-700' : 'text-gray-500' ?>">
-                    <?= $pSettings['cod_enabled'] === '1' ? 'ENABLED' : 'DISABLED' ?>
+                <p class="text-xs font-black <?= !empty($pSettings['cod_enabled']) ? 'text-emerald-700' : 'text-gray-500' ?>">
+                    <?= !empty($pSettings['cod_enabled']) ? 'ENABLED' : 'DISABLED' ?>
                 </p>
             </div>
         </div>
@@ -110,6 +110,8 @@ $webhookEndpointUrl = $currentDomain . '/webhooks/razorpay';
     <form action="/admin/payment-settings/update" method="POST" class="space-y-6">
         <input type="hidden" name="<?= CSRF_TOKEN_KEY ?>" value="<?= csrf_token() ?>">
 
+        <input type="hidden" name="is_form_submission" value="1">
+
         <!-- Section 1: Payment Methods Enable / Disable -->
         <div class="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-5">
             <div class="flex items-center justify-between border-b border-gray-100 pb-4">
@@ -122,11 +124,12 @@ $webhookEndpointUrl = $currentDomain . '/webhooks/razorpay';
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- COD Toggle -->
                 <label class="flex items-start gap-3.5 p-4 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer hover:border-gray-300 transition">
+                    <input type="hidden" name="cod_enabled" value="0">
                     <input 
                         type="checkbox" 
                         name="cod_enabled" 
                         value="1" 
-                        <?= $pSettings['cod_enabled'] === '1' ? 'checked' : '' ?>
+                        <?= $pSettings['cod_enabled'] ? 'checked' : '' ?>
                         class="w-4 h-4 text-brand-600 rounded-sm focus:ring-brand-500 mt-1"
                     >
                     <div>
@@ -135,18 +138,19 @@ $webhookEndpointUrl = $currentDomain . '/webhooks/razorpay';
                             <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Recommended</span>
                         </div>
                         <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">
-                            Customers pay in cash when the delivery agent arrives with tender coconuts or at shop pickup.
+                            Customers pay in cash directly when the delivery agent arrives with fresh tender coconuts at their doorstep.
                         </p>
                     </div>
                 </label>
 
                 <!-- Razorpay Toggle -->
                 <label class="flex items-start gap-3.5 p-4 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer hover:border-gray-300 transition">
+                    <input type="hidden" name="razorpay_enabled" value="0">
                     <input 
                         type="checkbox" 
                         name="razorpay_enabled" 
                         value="1" 
-                        <?= $pSettings['razorpay_enabled'] === '1' ? 'checked' : '' ?>
+                        <?= $pSettings['razorpay_enabled'] ? 'checked' : '' ?>
                         class="w-4 h-4 text-brand-600 rounded-sm focus:ring-brand-500 mt-1"
                     >
                     <div>

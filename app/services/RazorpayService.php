@@ -25,6 +25,13 @@ class RazorpayService {
     // Optional Mock Handler for automated offline unit testing
     private static $mockHandler = null;
 
+    // In-memory runtime cache for settings
+    private static ?array $runtimeSettings = null;
+
+    public static function resetSettingsCache(): void {
+        self::$runtimeSettings = null;
+    }
+
     /**
      * Get path to secure payment config file
      */
@@ -39,6 +46,10 @@ class RazorpayService {
      * Load settings from secure file or database fallback
      */
     public static function getSettings(): array {
+        if (self::$runtimeSettings !== null) {
+            return self::$runtimeSettings;
+        }
+
         $configFile = self::getConfigFilePath();
         $fileConfig = [];
         if (file_exists($configFile) && is_readable($configFile)) {
@@ -149,16 +160,30 @@ class RazorpayService {
         return str_repeat('•', 12) . $last4;
     }
 
-    /**
-     * Save settings to both protected configuration file and database
-     */
     public static function saveSettings(array $input): array {
         $current = self::getSettings();
+        $isFormSubmit = isset($input['is_form_submission']) || isset($input['environment']) || isset($input['razorpay_mode']);
 
-        $codEnabled = isset($input['cod_enabled']) ? ($input['cod_enabled'] ? '1' : '0') : ($current['cod_enabled'] ? '1' : '0');
-        $rzpEnabled = isset($input['razorpay_enabled']) ? ($input['razorpay_enabled'] ? '1' : '0') : ($current['razorpay_enabled'] ? '1' : '0');
+
+        if (array_key_exists('cod_enabled', $input)) {
+            $codEnabled = (!empty($input['cod_enabled']) && $input['cod_enabled'] !== '0' && $input['cod_enabled'] !== 'false') ? '1' : '0';
+        } else if ($isFormSubmit) {
+            $codEnabled = '0'; // Unchecked checkbox in submitted form
+        } else {
+            $codEnabled = !empty($current['cod_enabled']) ? '1' : '0';
+        }
+
+        if (array_key_exists('razorpay_enabled', $input)) {
+            $rzpEnabled = (!empty($input['razorpay_enabled']) && $input['razorpay_enabled'] !== '0' && $input['razorpay_enabled'] !== 'false') ? '1' : '0';
+        } else if ($isFormSubmit) {
+            $rzpEnabled = '0'; // Unchecked checkbox in submitted form
+        } else {
+            $rzpEnabled = !empty($current['razorpay_enabled']) ? '1' : '0';
+        }
+
         $rawEnv = $input['environment'] ?? ($input['razorpay_mode'] ?? $current['environment']);
         $env = in_array($rawEnv, ['test', 'live'], true) ? $rawEnv : 'test';
+
 
         // Key ID
         $newKeyId = trim($input['key_id'] ?? ($input['razorpay_key_id'] ?? ''));
@@ -217,6 +242,18 @@ class RazorpayService {
         Setting::set(self::KEY_KEY_ID, $keyIdToSave, 'Razorpay Public Key ID');
         Setting::set(self::KEY_KEY_SECRET, $keySecretToSave, 'Razorpay Private Key Secret');
         Setting::set(self::KEY_WEBHOOK_SECRET, $webhookSecretToSave, 'Razorpay Webhook Secret');
+        Setting::clearCache();
+
+        self::$runtimeSettings = [
+            'cod_enabled' => ($codEnabled === '1'),
+            'razorpay_enabled' => ($rzpEnabled === '1'),
+            'environment' => $env,
+            'razorpay_mode' => $env,
+            'key_id' => trim((string)$keyIdToSave),
+            'key_secret' => trim((string)$keySecretToSave),
+            'webhook_secret' => trim((string)$webhookSecretToSave),
+            'is_configured' => !empty(trim((string)$keyIdToSave)) && !empty(trim((string)$keySecretToSave)),
+        ];
 
         return [
             'success' => true,

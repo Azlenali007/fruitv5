@@ -37,7 +37,6 @@ $storeAddress = Setting::get('store_address', '123, Green Park, Near Main Road, 
                     <span class="inline-flex items-center gap-1.5 text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full font-medium">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Open Daily: <?= e(Setting::get('store_open_time', '07:00 AM')) ?> - <?= e(Setting::get('store_close_time', '09:00 PM')) ?>
                     </span>
-                    <a href="/admin" class="hover:text-brand-600 underline">Admin Login</a>
                 </div>
             </div>
 
@@ -49,7 +48,6 @@ $storeAddress = Setting::get('store_address', '123, Green Park, Near Main Road, 
                     <li><a href="/shop" class="text-gray-600 hover:text-brand-600 transition">Shop Coconut Water</a></li>
                     <li><a href="/cart" class="text-gray-600 hover:text-brand-600 transition">Your Cart (<?= $cartCount ?>)</a></li>
                     <li><a href="/track" class="text-gray-600 hover:text-brand-600 transition">Track Your Order</a></li>
-                    <li><a href="/admin" class="text-gray-600 hover:text-brand-600 transition">Store Admin</a></li>
                 </ul>
             </div>
 

@@ -93,8 +93,25 @@ require_once __DIR__ . '/layout-header.php';
                     </div>
                     <div class="col-span-2">
                         <span class="text-gray-400 font-semibold block">Delivery Address</span>
-                        <p class="font-medium text-gray-700 mt-1"><?= e($order['delivery_address'] ?: 'Shop Pickup') ?></p>
+                        <p class="font-medium text-gray-700 mt-1"><?= e($order['delivery_address']) ?></p>
                     </div>
+                    <?php if (!empty($order['delivery_area_name'])): ?>
+                    <div>
+                        <span class="text-gray-400 font-semibold block">Delivery Locality / Zone</span>
+                        <span class="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 text-[11px] inline-block mt-1">
+                            📍 <?= e($order['delivery_area_name']) ?>
+                        </span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($order['latitude']) && !empty($order['longitude'])): ?>
+                    <div>
+                        <span class="text-gray-400 font-semibold block">Map Coordinates</span>
+                        <a href="https://www.google.com/maps?q=<?= $order['latitude'] ?>,<?= $order['longitude'] ?>" target="_blank" class="text-brand-600 font-mono font-bold hover:underline inline-flex items-center gap-1 text-[11px] mt-1">
+                            <span><?= number_format((float)$order['latitude'], 5) ?>, <?= number_format((float)$order['longitude'], 5) ?></span>
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </div>
+                    <?php endif; ?>
                     <?php if (!empty($order['notes'])): ?>
                     <div class="col-span-2">
                         <span class="text-gray-400 font-semibold block">Order Notes</span>

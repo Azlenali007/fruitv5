@@ -936,6 +936,138 @@ try {
             require __DIR__ . '/../app/views/admin/reports.php';
             break;
 
+        // ------------------------------------------------
+        // Admin Delivery Areas Routes
+        // ------------------------------------------------
+        case '/admin/areas':
+            AuthService::requireAdmin();
+            require __DIR__ . '/../app/views/admin/areas.php';
+            break;
+
+        case '/admin/areas/create':
+            AuthService::requireAdmin();
+            $area = null;
+            require __DIR__ . '/../app/views/admin/area-form.php';
+            break;
+
+        case '/admin/areas/store':
+            AuthService::requireAdmin();
+            if ($method === 'POST') {
+                if (!verify_csrf_token($_POST[CSRF_TOKEN_KEY] ?? '')) {
+                    set_flash('error', 'CSRF verification failed.');
+                    header('Location: /admin/areas/create');
+                    exit;
+                }
+                $res = DeliveryArea::create($_POST);
+                if ($res['success']) {
+                    set_flash('success', 'Delivery area ' . e($_POST['name']) . ' created successfully.');
+                    header('Location: /admin/areas');
+                    exit;
+                } else {
+                    set_flash('error', $res['error']);
+                    header('Location: /admin/areas/create');
+                    exit;
+                }
+            }
+            header('Location: /admin/areas');
+            break;
+
+        case '/admin/areas/edit':
+            AuthService::requireAdmin();
+            $areaId = (int)($_GET['id'] ?? 0);
+            $area = DeliveryArea::getById($areaId);
+            if (!$area) {
+                set_flash('error', 'Delivery area not found.');
+                header('Location: /admin/areas');
+                exit;
+            }
+            require __DIR__ . '/../app/views/admin/area-form.php';
+            break;
+
+        case '/admin/areas/update':
+            AuthService::requireAdmin();
+            if ($method === 'POST') {
+                if (!verify_csrf_token($_POST[CSRF_TOKEN_KEY] ?? '')) {
+                    set_flash('error', 'CSRF verification failed.');
+                    header('Location: /admin/areas');
+                    exit;
+                }
+                $areaId = (int)($_POST['area_id'] ?? 0);
+                $res = DeliveryArea::update($areaId, $_POST);
+                if ($res['success']) {
+                    set_flash('success', 'Delivery area and map boundary successfully updated.');
+                    header('Location: /admin/areas');
+                    exit;
+                } else {
+                    set_flash('error', $res['error']);
+                    header('Location: /admin/areas/edit?id=' . $areaId);
+                    exit;
+                }
+            }
+            header('Location: /admin/areas');
+            break;
+
+        case '/admin/areas/toggle-status':
+            AuthService::requireAdmin();
+            if ($method === 'POST') {
+                if (!verify_csrf_token($_POST[CSRF_TOKEN_KEY] ?? '')) {
+                    set_flash('error', 'CSRF verification failed.');
+                } else {
+                    $areaId = (int)($_POST['area_id'] ?? 0);
+                    DeliveryArea::toggleStatus($areaId);
+                    set_flash('success', 'Area status updated.');
+                }
+            }
+            header('Location: /admin/areas');
+            break;
+
+        case '/admin/areas/delete':
+            AuthService::requireAdmin();
+            if ($method === 'POST') {
+                if (!verify_csrf_token($_POST[CSRF_TOKEN_KEY] ?? '')) {
+                    set_flash('error', 'CSRF verification failed.');
+                } else {
+                    $areaId = (int)($_POST['area_id'] ?? 0);
+                    $delRes = DeliveryArea::delete($areaId);
+                    if ($delRes['success']) {
+                        set_flash('success', $delRes['message']);
+                    } else {
+                        set_flash('error', 'Failed to delete area.');
+                    }
+                }
+            }
+            header('Location: /admin/areas');
+            break;
+
+        // ------------------------------------------------
+        // Public API: Check Delivery Location & Charge
+        // ------------------------------------------------
+        case '/api/check-delivery-location':
+            if ($method === 'POST') {
+                $rawInput = file_get_contents('php://input');
+                $jsonData = json_decode($rawInput, true) ?: [];
+
+                $rawLat = $_POST['lat'] ?? ($jsonData['lat'] ?? ($jsonData['latitude'] ?? null));
+                $rawLng = $_POST['lng'] ?? ($jsonData['lng'] ?? ($jsonData['longitude'] ?? null));
+                $rawAreaId = $_POST['area_id'] ?? ($jsonData['area_id'] ?? null);
+
+                $lat = ($rawLat !== null && is_numeric($rawLat)) ? (float)$rawLat : null;
+                $lng = ($rawLng !== null && is_numeric($rawLng)) ? (float)$rawLng : null;
+                $areaId = ($rawAreaId !== null && is_numeric($rawAreaId)) ? (int)$rawAreaId : null;
+
+                $eligibility = AreaService::checkDeliveryEligibility($lat, $lng, $areaId);
+                json_response([
+                    'success' => true,
+                    'deliverable' => $eligibility['deliverable'],
+                    'area_id' => $eligibility['area_id'],
+                    'area_name' => $eligibility['area_name'],
+                    'delivery_charge' => $eligibility['delivery_charge'],
+                    'message' => $eligibility['message']
+                ]);
+            }
+            json_response(['success' => false, 'error' => 'Method not allowed'], 405);
+            break;
+
         case '/admin/payments':
             AuthService::requireAdmin();
             require __DIR__ . '/../app/views/admin/payments.php';

@@ -66,9 +66,117 @@ $storeName = Setting::get('store_name', 'N.A Fresh Fruits & Coconuts');
                 display: none;
             }
         }
+        /* Smooth Page Transition Overlay */
+        #page-loader {
+            transition: opacity 0.25s ease-in-out, visibility 0.25s ease-in-out;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #page-loader, .page-loader-spinner {
+                animation: none !important;
+                transition: none !important;
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-full flex flex-col text-gray-800 antialiased bg-[#f8faf8] selection:bg-brand-100 selection:text-brand-700" x-data="{ mobileMenuOpen: false, searchOpen: false }">
+
+<!-- Page Transition Loading Animation Overlay -->
+<div id="page-loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xs opacity-0 invisible pointer-events-none" aria-hidden="true">
+    <div class="flex flex-col items-center p-6 rounded-3xl bg-white/95 shadow-xl border border-gray-100 max-w-xs text-center transform scale-95 transition-transform duration-200">
+        <!-- Modern animated spinner -->
+        <div class="relative w-12 h-12 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-full border-3 border-emerald-100 border-t-[#235d3a] animate-spin"></div>
+            <div class="absolute w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center animate-pulse">
+                <span class="w-2 h-2 rounded-full bg-[#235d3a]"></span>
+            </div>
+        </div>
+        <p class="text-xs font-bold text-gray-800 mt-3.5 tracking-wide">N.A Fresh Fruits</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Harvesting freshness...</p>
+    </div>
+</div>
+
+<script>
+(function() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+    }
+    var loader = document.getElementById('page-loader');
+    if (!loader) return;
+
+    var hideTimer = null;
+
+    function showLoader() {
+        if (!loader) return;
+        clearTimeout(hideTimer);
+        loader.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+        loader.classList.add('opacity-100', 'visible');
+        // Safety timeout: auto-hide after 6 seconds to prevent stuck state
+        hideTimer = setTimeout(hideLoader, 6000);
+    }
+
+    function hideLoader() {
+        if (!loader) return;
+        clearTimeout(hideTimer);
+        loader.classList.remove('opacity-100', 'visible');
+        loader.classList.add('opacity-0', 'invisible', 'pointer-events-none');
+        // Reset navigation lock on all links
+        var navigatingLinks = document.querySelectorAll('a[data-navigating="true"]');
+        for (var i = 0; i < navigatingLinks.length; i++) {
+            delete navigatingLinks[i].dataset.navigating;
+        }
+    }
+
+    // Hide loader immediately on DOM load and when restored from BFCache (Back/Forward navigation)
+    window.addEventListener('pageshow', function(e) {
+        hideLoader();
+    });
+    window.addEventListener('load', hideLoader);
+    document.addEventListener('DOMContentLoaded', hideLoader);
+
+    // Click handler for smooth transitions
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('a');
+        if (!link) return;
+
+        var href = link.getAttribute('href');
+        if (!href) return;
+
+        // Skip anchors, javascript, empty
+        if (href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href === '') return;
+
+        // Skip new tab / blank
+        if (link.target === '_blank') return;
+
+        // Skip downloads
+        if (link.hasAttribute('download')) return;
+
+        // Skip special protocols
+        if (/^(mailto|tel|sms|whatsapp|blob):/i.test(href)) return;
+
+        // Check if internal domain
+        try {
+            var url = new URL(link.href, window.location.href);
+            if (url.origin !== window.location.origin) return;
+            // Skip hash navigation on same page
+            if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+        } catch (_) {
+            return;
+        }
+
+        // Prevent double click navigation
+        if (link.dataset.navigating === 'true') {
+            e.preventDefault();
+            return;
+        }
+        link.dataset.navigating = 'true';
+
+        // Trigger smooth transition
+        showLoader();
+    }, true);
+})();
+</script>
+
 
 <!-- Top Navigation Bar -->
 <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-xs">
@@ -165,14 +273,6 @@ $storeName = Setting::get('store_name', 'N.A Fresh Fruits & Coconuts');
                 </a>
                 <?php endif; ?>
 
-                <!-- Admin Link -->
-                <a href="/admin" class="hidden lg:inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-full border border-gray-200 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                    <span>Admin</span>
-                </a>
-
                 <!-- Mobile Hamburger Menu Button -->
                 <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-gray-700 hover:text-brand-600 p-1.5" aria-label="Toggle menu">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -250,10 +350,6 @@ $storeName = Setting::get('store_name', 'N.A Fresh Fruits & Coconuts');
                 </button>
             </form>
             <?php endif; ?>
-            <a href="/admin" class="flex items-center gap-2 text-xs font-semibold text-gray-600 bg-gray-100 p-2.5 rounded-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                <span>Store Admin Portal</span>
-            </a>
         </div>
     </div>
 </header>

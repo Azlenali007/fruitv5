@@ -80,6 +80,10 @@ class OrderService {
         }
 
         $fulfilment = trim($postData['fulfilment_method'] ?? 'delivery');
+        if ($fulfilment === 'pickup') {
+            return ['success' => false, 'error' => 'Shop pickup is not available. All orders are delivered directly to your doorstep.'];
+        }
+        $fulfilment = 'delivery';
         $address = trim($postData['delivery_address'] ?? '');
 
         if (empty($name) || mb_strlen($name) < 2) {
@@ -92,12 +96,21 @@ class OrderService {
             return ['success' => false, 'error' => 'Please enter a valid 10-digit mobile number.'];
         }
 
-        if ($fulfilment === 'delivery' && (empty($address) || mb_strlen($address) < 8)) {
+        if (empty($address) || mb_strlen($address) < 8) {
             return ['success' => false, 'error' => 'Please provide a complete delivery address including street and locality.'];
         }
 
-        if (!in_array($fulfilment, ['delivery', 'pickup'], true)) {
-            $fulfilment = 'delivery';
+        // Validate Delivery Area & Coordinates
+        $lat = isset($postData['latitude']) && is_numeric($postData['latitude']) ? (float)$postData['latitude'] : null;
+        $lng = isset($postData['longitude']) && is_numeric($postData['longitude']) ? (float)$postData['longitude'] : null;
+        $areaId = !empty($postData['delivery_area_id']) ? (int)$postData['delivery_area_id'] : null;
+
+        $eligibility = AreaService::checkDeliveryEligibility($lat, $lng, $areaId);
+        if (!$eligibility['deliverable']) {
+            return [
+                'success' => false,
+                'error' => $eligibility['message'] ?: 'Sorry, delivery is not available at your location.'
+            ];
         }
 
         // 5. Cart Validation
@@ -116,15 +129,20 @@ class OrderService {
             'customer_id' => (int)$customer['id'],
             'customer_name' => $name,
             'customer_phone' => '+91 ' . $cleanPhone,
-            'fulfilment_method' => $fulfilment,
+            'fulfilment_method' => 'delivery',
             'coupon_code' => $couponCode,
             'delivery_address' => $address,
+            'delivery_area_id' => $eligibility['area_id'] ?? $areaId,
+            'delivery_area_name' => $eligibility['area_name'] ?? trim($postData['delivery_area_name'] ?? ''),
+            'latitude' => $lat,
+            'longitude' => $lng,
             'payment_method' => $paymentMethod,
             'payment_status' => 'pending',
             'order_status' => $initialOrderStatus,
             'idempotency_key' => $postData['idempotency_key'] ?? null,
             'notes' => trim($postData['notes'] ?? '')
         ];
+
 
         // 7. Place Order Transactionally
         $result = Order::createOrder($orderData, $cart['items']);

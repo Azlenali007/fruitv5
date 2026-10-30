@@ -68,32 +68,51 @@ class Order {
                 $stmtDeduct->execute([$quantity, $productId]);
             }
 
-            // 3. Calculate delivery charge and coupon discounts
+            // 3. Validate fulfilment method & payment method
             $fulfilment = $orderData['fulfilment_method'] ?? 'delivery';
-            $originalDeliveryCharge = 0.00;
-
-            if ($fulfilment === 'delivery') {
-                $deliveryEnabled = Setting::get('local_delivery_enabled', '1') === '1';
-                if (!$deliveryEnabled) {
-                    throw new Exception("Local delivery is currently paused by store manager.");
-                }
-                $minOrder = (float)Setting::get('min_order_amount', '40.00');
-                if ($subtotal < $minOrder) {
-                    throw new Exception("Minimum order amount for delivery is " . CURRENCY_SYMBOL . number_format($minOrder, 2));
-                }
-                $freeAbove = (float)Setting::get('free_delivery_above', '500.00');
-                if ($subtotal >= $freeAbove) {
-                    $originalDeliveryCharge = 0.00;
-                } else {
-                    $originalDeliveryCharge = (float)Setting::get('delivery_charge', '40.00');
-                }
-            } else {
-                $pickupEnabled = Setting::get('shop_pickup_enabled', '1') === '1';
-                if (!$pickupEnabled) {
-                    throw new Exception("Shop pickup is currently not available.");
-                }
-                $originalDeliveryCharge = 0.00;
+            if ($fulfilment === 'pickup') {
+                throw new Exception("Shop pickup is no longer available. All orders are delivered directly to your doorstep.");
             }
+            $fulfilment = 'delivery';
+
+            $paymentMethod = $orderData['payment_method'] ?? 'cod';
+            if ($paymentMethod === 'cod' && !RazorpayService::isCodEnabled()) {
+                throw new Exception("Cash on Delivery is currently disabled by store management. Please select online payment.");
+            }
+
+            $deliveryEnabled = Setting::get('local_delivery_enabled', '1') === '1';
+            if (!$deliveryEnabled) {
+                throw new Exception("Local delivery is currently paused by store manager.");
+            }
+
+            $minOrder = (float)Setting::get('min_order_amount', '40.00');
+            if ($subtotal < $minOrder) {
+                throw new Exception("Minimum order amount for delivery is " . CURRENCY_SYMBOL . number_format($minOrder, 2));
+            }
+
+            $deliveryLat = isset($orderData['latitude']) && is_numeric($orderData['latitude']) ? (float)$orderData['latitude'] : null;
+            $deliveryLng = isset($orderData['longitude']) && is_numeric($orderData['longitude']) ? (float)$orderData['longitude'] : null;
+            $deliveryAreaId = !empty($orderData['delivery_area_id']) ? (int)$orderData['delivery_area_id'] : null;
+            $deliveryAreaName = !empty($orderData['delivery_area_name']) ? trim($orderData['delivery_area_name']) : null;
+
+            $areaCheck = AreaService::checkDeliveryEligibility($deliveryLat, $deliveryLng, $deliveryAreaId);
+            if (!$areaCheck['deliverable']) {
+                throw new Exception($areaCheck['message'] ?: "Sorry, delivery is not available at your location.");
+            }
+
+            if (!empty($areaCheck['area_id'])) {
+                $deliveryAreaId = (int)$areaCheck['area_id'];
+                $deliveryAreaName = $areaCheck['area_name'];
+            }
+
+            $areaCharge = (float)$areaCheck['delivery_charge'];
+            $freeAbove = (float)Setting::get('free_delivery_above', '500.00');
+            if ($subtotal >= $freeAbove) {
+                $originalDeliveryCharge = 0.00;
+            } else {
+                $originalDeliveryCharge = $areaCharge;
+            }
+
 
             // Coupon validation & discount computation
             $couponId = null;
@@ -207,21 +226,21 @@ class Order {
                 }
             }
 
-            $paymentMethod = $orderData['payment_method'] ?? 'cod';
             $paymentStatus = $orderData['payment_status'] ?? 'pending';
             $orderStatus = $orderData['order_status'] ?? ($paymentMethod === 'cod' ? 'confirmed' : 'pending');
             $rzpOrderId = $orderData['razorpay_order_id'] ?? null;
 
-            // 6. Insert Order
+            // 6. Insert Order with delivery area & GPS coordinates snapshot
             $stmtOrder = $pdo->prepare("
                 INSERT INTO `orders` (
                     `order_number`, `customer_id`, `customer_name`, `customer_phone`,
                     `fulfilment_method`, `coupon_id`, `coupon_code`, `coupon_type`,
-                    `delivery_address`, `subtotal`, `discount_amount`, `original_delivery_charge`,
+                    `delivery_address`, `delivery_area_id`, `delivery_area_name`, `latitude`, `longitude`,
+                    `subtotal`, `discount_amount`, `original_delivery_charge`,
                     `delivery_discount`, `delivery_charge`, `total_amount`,
                     `payment_method`, `payment_status`, `order_status`, `razorpay_order_id`,
                     `tracking_hash`, `estimated_delivery`, `notes`, `idempotency_key`, `created_at`
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
 
             $stmtOrder->execute([
@@ -234,6 +253,10 @@ class Order {
                 $couponCode,
                 $couponType,
                 $orderData['delivery_address'] ?? '',
+                $deliveryAreaId,
+                $deliveryAreaName,
+                $deliveryLat,
+                $deliveryLng,
                 $subtotal,
                 $discountAmount,
                 $originalDeliveryCharge,

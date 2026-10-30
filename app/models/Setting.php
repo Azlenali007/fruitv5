@@ -52,7 +52,7 @@ class Setting {
                 $stmt->execute([$k, (string)$v]);
             }
             $pdo->commit();
-            self::$cache = null; // Clear cache
+            self::$cache = null;
             return true;
         } catch (Exception $e) {
             $pdo->rollBack();
@@ -60,4 +60,17 @@ class Setting {
             return false;
         }
     }
+
+    public static function clearCache(): void {
+        self::$cache = null;
+    }
+
+    public static function isCodEnabled(): bool {
+        return class_exists('RazorpayService') ? RazorpayService::isCodEnabled() : (self::get('cod_enabled', '1') === '1');
+    }
+
+    public static function isRazorpayEnabled(): bool {
+        return class_exists('RazorpayService') ? RazorpayService::isRazorpayEnabled() : (self::get('razorpay_enabled', '0') === '1');
+    }
 }
+

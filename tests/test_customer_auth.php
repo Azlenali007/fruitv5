@@ -201,12 +201,12 @@ echo "\n5. PAYMENT SAFETY VERIFICATION TESTS:\n";
 CartService::clear();
 CartService::addItem($prod['id'], 1);
 
-// Online payment method (mock UPI/Cards)
 $onlineOrderRes = OrderService::processCheckout([
     CSRF_TOKEN_KEY => $token,
     'customer_name' => 'Amit Verma',
     'customer_phone' => $testPhone,
-    'fulfilment_method' => 'pickup',
+    'fulfilment_method' => 'delivery',
+    'delivery_address' => 'Flat 402, Green Meadows, Arera Colony, Bhopal',
     'payment_method' => 'online',
     'idempotency_key' => 'idem_online_' . uniqid()
 ]);

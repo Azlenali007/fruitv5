@@ -22,10 +22,9 @@ $settings = Setting::getAll();
 
         <!-- Fulfilment Methods Card -->
         <div class="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-5">
-            <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Fulfilment Methods</h2>
+            <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Fulfilment Method</h2>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+            <div class="grid grid-cols-1 gap-4">
                 <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer">
                     <input 
                         type="checkbox" 
@@ -35,25 +34,10 @@ $settings = Setting::getAll();
                         class="w-4 h-4 text-brand-600 rounded-sm focus:ring-brand-500 mt-0.5"
                     >
                     <div>
-                        <span class="font-bold text-xs text-gray-900 block">Enable Local Delivery</span>
-                        <span class="text-[11px] text-gray-500">Allow customers to order for home/office doorstep delivery.</span>
+                        <span class="font-bold text-xs text-gray-900 block">Enable Home Doorstep Delivery</span>
+                        <span class="text-[11px] text-gray-500">Allow customers to order for fresh tender coconut doorstep delivery.</span>
                     </div>
                 </label>
-
-                <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        name="shop_pickup_enabled" 
-                        value="1" 
-                        <?= ($settings['shop_pickup_enabled'] ?? '1') === '1' ? 'checked' : '' ?>
-                        class="w-4 h-4 text-brand-600 rounded-sm focus:ring-brand-500 mt-0.5"
-                    >
-                    <div>
-                        <span class="font-bold text-xs text-gray-900 block">Enable Shop Pickup</span>
-                        <span class="text-[11px] text-gray-500">Allow customers to collect fresh tender coconuts at the shop.</span>
-                    </div>
-                </label>
-
             </div>
         </div>
 
